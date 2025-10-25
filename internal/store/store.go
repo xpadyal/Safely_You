@@ -18,6 +18,16 @@ func NewStore() *Store {
 	}
 }
 
+// EnsureDevice creates a device if it doesn't exist and returns it
+func (s *Store) EnsureDevice(id string) *models.Device {
+	if d, ok := s.devices[id]; ok {
+		return d
+	}
+	d := &models.Device{}
+	s.devices[id] = d
+	return d
+}
+
 // Helper functions
 
 func ParseRFC3339(ts string) (time.Time, error) {

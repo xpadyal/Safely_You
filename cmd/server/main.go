@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/xpadyal/Safely_You/internal/config"
 	"github.com/xpadyal/Safely_You/internal/handlers"
+	"github.com/xpadyal/Safely_You/internal/loader"
 	"github.com/xpadyal/Safely_You/internal/store"
 )
 
@@ -15,6 +16,11 @@ func main() {
 
 	// Initialize store
 	storeInstance := store.NewStore()
+
+	// Load devices from CSV file
+	if err := loader.LoadDevicesFromCSV("devices.csv", storeInstance); err != nil {
+		log.Fatalf("Failed to load devices: %v", err)
+	}
 
 	// Set up the web server
 	r := gin.Default()
