@@ -29,7 +29,8 @@ func main() {
 	r.GET("/health", handlers.HealthHandler)
 
 	// API routes for devices
-	devices := r.Group("/devices")
+	api := r.Group("/api/v1")
+	devices := api.Group("/devices")
 	{
 		devices.POST("/:device_id/heartbeat", handlers.PostHeartbeatHandler(storeInstance))
 		devices.POST("/:device_id/stats", handlers.PostStatsHandler(storeInstance))
