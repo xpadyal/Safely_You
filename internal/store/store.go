@@ -1,3 +1,5 @@
+// Package store provides the core business logic for device data management.
+// It handles device operations, uptime calculations, and thread-safe data access.
 package store
 
 import (

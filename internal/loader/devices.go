@@ -1,3 +1,5 @@
+// Package loader handles loading device data from external sources.
+// Currently supports loading device IDs from CSV files for initialization.
 package loader
 
 import (

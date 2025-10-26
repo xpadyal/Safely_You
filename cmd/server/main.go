@@ -1,3 +1,5 @@
+// Package main is the entry point for the Safely You device monitoring server.
+// It initializes the application, loads device data, and starts the HTTP server.
 package main
 
 import (

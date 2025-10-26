@@ -1,3 +1,5 @@
+// Package models defines the core data structures used throughout the application.
+// It includes device data models, request/response types, and the in-memory store.
 package models
 
 import (

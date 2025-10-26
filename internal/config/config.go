@@ -1,3 +1,5 @@
+// Package config handles application configuration management.
+// It loads settings from environment variables with sensible defaults.
 package config
 
 import (
@@ -13,10 +15,12 @@ type Config struct {
 func Load() *Config {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = ":8080"
+	} else if port[0] != ':' {
+		port = ":" + port
 	}
 
 	return &Config{
-		Port: ":" + port,
+		Port: port,
 	}
 }

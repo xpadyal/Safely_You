@@ -1,3 +1,5 @@
+// Package handlers contains HTTP request handlers for the device monitoring API.
+// It provides endpoints for heartbeat registration, upload stats submission, and device statistics retrieval.
 package handlers
 
 import (
@@ -7,51 +9,31 @@ import (
 	"github.com/xpadyal/Safely_You/internal/models"
 	"github.com/xpadyal/Safely_You/internal/store"
 	"github.com/xpadyal/Safely_You/internal/utils"
+	"github.com/xpadyal/Safely_You/internal/validation"
 )
-
-// Response helper functions for common error responses
-func notFound(c *gin.Context, msg string) {
-	c.JSON(http.StatusNotFound, models.NotFoundResponse{Msg: msg})
-}
-
-func badRequest(c *gin.Context, msg string) {
-	c.JSON(http.StatusBadRequest, models.ErrorResponse{Msg: msg})
-}
-
-func internalError(c *gin.Context, msg string) {
-	c.JSON(http.StatusInternalServerError, models.ErrorResponse{Msg: msg})
-}
 
 // Handles heartbeat registration from devices
 func PostHeartbeatHandler(storeInstance *models.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		deviceID := c.Param("device_id")
-		if deviceID == "" {
-			notFound(c, "device not found")
+		if !validation.ValidateDeviceExists(c, storeInstance, deviceID) {
 			return
 		}
 
 		var req models.HeartbeatRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			badRequest(c, "invalid JSON body")
+			validation.BadRequest(c, "invalid JSON body")
 			return
 		}
 
-		t, err := utils.ParseRFC3339(req.SentAt)
-		if err != nil {
-			badRequest(c, "invalid sent_at: "+err.Error())
-			return
-		}
-
-		// Check if device exists, return 404 if not
-		if _, exists := store.SnapshotDevice(storeInstance, deviceID); !exists {
-			notFound(c, "device not found")
+		t, ok := validation.ValidateAndExtractTimestamp(c, req.SentAt)
+		if !ok {
 			return
 		}
 
 		// Add heartbeat with error handling
 		if err := store.AddHeartbeat(storeInstance, deviceID, t); err != nil {
-			internalError(c, "failed to add heartbeat")
+			validation.InternalError(c, "failed to add heartbeat")
 			return
 		}
 
@@ -63,32 +45,25 @@ func PostHeartbeatHandler(storeInstance *models.Store) gin.HandlerFunc {
 func PostStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		deviceID := c.Param("device_id")
-		if deviceID == "" {
-			notFound(c, "device not found")
+		if !validation.ValidateDeviceExists(c, storeInstance, deviceID) {
 			return
 		}
 
 		var req models.UploadStatsRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			badRequest(c, "invalid JSON body")
+			validation.BadRequest(c, "invalid JSON body")
 			return
 		}
 
-		// Check sent_at format even though we don't use it for calculations
-		if _, err := utils.ParseRFC3339(req.SentAt); err != nil {
-			badRequest(c, "invalid sent_at: "+err.Error())
-			return
-		}
-
-		// Check if device exists, return 404 if not
-		if _, exists := store.SnapshotDevice(storeInstance, deviceID); !exists {
-			notFound(c, "device not found")
+		// Check sent_at format and validate reasonableness
+		_, ok := validation.ValidateAndExtractTimestamp(c, req.SentAt)
+		if !ok {
 			return
 		}
 
 		// Add upload time with error handling
 		if err := store.AddUploadTime(storeInstance, deviceID, req.UploadTime); err != nil {
-			internalError(c, "failed to add upload time")
+			validation.InternalError(c, "failed to add upload time")
 			return
 		}
 
@@ -100,16 +75,11 @@ func PostStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 func GetStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		deviceID := c.Param("device_id")
-		if deviceID == "" {
-			notFound(c, "device not found")
+		if !validation.ValidateDeviceExists(c, storeInstance, deviceID) {
 			return
 		}
 
-		d, exists := store.SnapshotDevice(storeInstance, deviceID)
-		if !exists {
-			notFound(c, "device not found")
-			return
-		}
+		d, _ := store.SnapshotDevice(storeInstance, deviceID) // We know it exists from validation
 
 		// Check if device has any data, return 204 if no data
 		if len(d.Heartbeats) == 0 && len(d.UploadTimes) == 0 {
@@ -120,13 +90,13 @@ func GetStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 		// Compute stats with error handling
 		uptime, err := store.ComputeUptime(d)
 		if err != nil {
-			internalError(c, "failed to compute uptime")
+			validation.InternalError(c, "failed to compute uptime")
 			return
 		}
 
 		avgUpload, err := store.ComputeAvgUpload(d)
 		if err != nil {
-			internalError(c, "failed to compute average upload time")
+			validation.InternalError(c, "failed to compute average upload time")
 			return
 		}
 
