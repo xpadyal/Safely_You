@@ -7,10 +7,11 @@ import (
 
 	"github.com/xpadyal/Safely_You/internal/models"
 	"github.com/xpadyal/Safely_You/internal/store"
+	"github.com/xpadyal/Safely_You/internal/utils"
 )
 
 func mustTime(s string) time.Time {
-	t, err := store.ParseRFC3339(s)
+	t, err := utils.ParseRFC3339(s)
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +52,10 @@ func TestComputeUptimeBasic(t *testing.T) {
 			mustTime("2025-10-25T10:02:00Z"),
 		},
 	}
-	u := store.ComputeUptime(d)
+	u, err := store.ComputeUptime(d)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if math.Abs(u-66.6667) > 0.2 {
 		t.Fatalf("want ~66.67, got %v", u)
 	}
@@ -65,7 +69,10 @@ func TestComputeUptimeDrop(t *testing.T) {
 			mustTime("2025-10-25T10:03:00Z"),
 		},
 	}
-	u := store.ComputeUptime(d)
+	u, err := store.ComputeUptime(d)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if math.Abs(u-50.0) > 0.2 {
 		t.Fatalf("want ~50.0, got %v", u)
 	}
@@ -79,7 +86,10 @@ func TestComputeUptimeSingleMinute(t *testing.T) {
 			mustTime("2025-10-25T10:00:50Z"),
 		},
 	}
-	u := store.ComputeUptime(d)
+	u, err := store.ComputeUptime(d)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if u != 100 {
 		t.Fatalf("want 100 for single-minute window, got %v", u)
 	}
@@ -87,9 +97,9 @@ func TestComputeUptimeSingleMinute(t *testing.T) {
 
 func TestComputeAvgUpload(t *testing.T) {
 	d := &models.Device{UploadTimes: []int64{4, 6}}
-	avg, ok := store.ComputeAvgUpload(d)
-	if !ok {
-		t.Fatalf("expected ok=true")
+	avg, err := store.ComputeAvgUpload(d)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
 	// Average of 4 and 6 nanoseconds should be "5ns"
 	if avg != "5ns" {
@@ -97,9 +107,9 @@ func TestComputeAvgUpload(t *testing.T) {
 	}
 
 	d2 := &models.Device{UploadTimes: []int64{5, 6, 5}}
-	avg2, ok2 := store.ComputeAvgUpload(d2)
-	if !ok2 {
-		t.Fatalf("expected ok2=true")
+	avg2, err2 := store.ComputeAvgUpload(d2)
+	if err2 != nil {
+		t.Fatalf("unexpected error: %v", err2)
 	}
 	// Average of 5, 6, 5 nanoseconds should be "5ns"
 	if avg2 != "5ns" {

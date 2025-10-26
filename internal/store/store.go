@@ -2,41 +2,29 @@ package store
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/xpadyal/Safely_You/internal/models"
 )
 
-type Store struct {
-	devices map[string]*models.Device
-}
-
-func NewStore() *Store {
-	return &Store{
-		devices: make(map[string]*models.Device),
+// NewStore creates a new Store instance
+func NewStore() *models.Store {
+	return &models.Store{
+		Devices: make(map[string]*models.Device),
 	}
 }
 
 // EnsureDevice creates a device if it doesn't exist and returns it
-func (s *Store) EnsureDevice(id string) *models.Device {
-	if d, ok := s.devices[id]; ok {
+func EnsureDevice(s *models.Store, id string) *models.Device {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	if d, ok := s.Devices[id]; ok {
 		return d
 	}
 	d := &models.Device{}
-	s.devices[id] = d
+	s.Devices[id] = d
 	return d
-}
-
-// Helper functions
-
-func ParseRFC3339(ts string) (time.Time, error) {
-	// Parse RFC3339 format as specified in OpenAPI contract
-	t, err := time.Parse(time.RFC3339, ts)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid sent_at format: %s", ts)
-	}
-	return t.UTC(), nil
 }
 
 // Counts unique minute buckets in UTC
@@ -77,27 +65,27 @@ func MinutesBetweenFirstAndLast(times []time.Time) (int, error) {
 }
 
 // Formula: (unique_minute_heartbeats / total_minute_span) * 100
-func ComputeUptime(d *models.Device) float64 {
+func ComputeUptime(d *models.Device) (float64, error) {
 	if d == nil || len(d.Heartbeats) == 0 {
-		return 0.0
+		return 0.0, nil
 	}
 	uniq := UniqueMinuteCount(d.Heartbeats)
 	windowMinutes, err := MinutesBetweenFirstAndLast(d.Heartbeats)
 	if err != nil || windowMinutes == 0 {
 		// All heartbeats in the same minute = 100% uptime
 		if uniq > 0 {
-			return 100.0
+			return 100.0, nil
 		}
-		return 0.0
+		return 0.0, nil
 	}
-	return (float64(uniq) / float64(windowMinutes)) * 100.0
+	return (float64(uniq) / float64(windowMinutes)) * 100.0, nil
 }
 
 // Calculates average upload time and returns it as a duration string
-// Returns ("0s", false) if no data available
-func ComputeAvgUpload(d *models.Device) (string, bool) {
+// Returns ("0s", nil) if no data available
+func ComputeAvgUpload(d *models.Device) (string, error) {
 	if d == nil || len(d.UploadTimes) == 0 {
-		return "0s", false
+		return "0s", nil
 	}
 	var sum int64
 	for _, v := range d.UploadTimes {
@@ -106,31 +94,40 @@ func ComputeAvgUpload(d *models.Device) (string, bool) {
 	avg := sum / int64(len(d.UploadTimes))
 	// Convert nanoseconds to duration and format as string
 	duration := time.Duration(avg)
-	return duration.String(), true
+	return duration.String(), nil
 }
 
 // Device operations
 
-func (s *Store) AddHeartbeat(id string, t time.Time) {
-	d, ok := s.devices[id]
+func AddHeartbeat(s *models.Store, id string, t time.Time) error {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	d, ok := s.Devices[id]
 	if !ok {
-		d = &models.Device{}
-		s.devices[id] = d
+		return errors.New("device not found")
 	}
 	d.Heartbeats = append(d.Heartbeats, t.UTC())
+	return nil
 }
 
-func (s *Store) AddUploadTime(id string, v int64) {
-	d, ok := s.devices[id]
+func AddUploadTime(s *models.Store, id string, v int64) error {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	d, ok := s.Devices[id]
 	if !ok {
-		d = &models.Device{}
-		s.devices[id] = d
+		return errors.New("device not found")
 	}
 	d.UploadTimes = append(d.UploadTimes, v)
+	return nil
 }
 
 // Returns the device data
-func (s *Store) SnapshotDevice(id string) (*models.Device, bool) {
-	d, ok := s.devices[id]
+func SnapshotDevice(s *models.Store, id string) (*models.Device, bool) {
+	s.Mu.RLock()
+	defer s.Mu.RUnlock()
+
+	d, ok := s.Devices[id]
 	return d, ok
 }

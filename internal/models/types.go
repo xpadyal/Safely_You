@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 type Device struct {
 	Heartbeats  []time.Time
@@ -19,4 +22,19 @@ type UploadStatsRequest struct {
 type StatsGetResponse struct {
 	Uptime        float64 `json:"uptime"`
 	AvgUploadTime string  `json:"avg_upload_time"`
+}
+
+// Response types for error handling
+type NotFoundResponse struct {
+	Msg string `json:"msg"`
+}
+
+type ErrorResponse struct {
+	Msg string `json:"msg"`
+}
+
+// Store holds device data in memory with thread-safe access
+type Store struct {
+	Mu      sync.RWMutex
+	Devices map[string]*Device
 }
