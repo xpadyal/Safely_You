@@ -12,35 +12,6 @@ import (
 	"github.com/xpadyal/Safely_You/internal/validation"
 )
 
-// Handles heartbeat registration from devices
-func PostHeartbeatHandler(storeInstance *models.Store) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		deviceID := c.Param("device_id")
-		if !validation.ValidateDeviceExists(c, storeInstance, deviceID) {
-			return
-		}
-
-		var req models.HeartbeatRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			validation.BadRequest(c, "invalid JSON body")
-			return
-		}
-
-		t, ok := validation.ValidateAndExtractTimestamp(c, req.SentAt)
-		if !ok {
-			return
-		}
-
-		// Add heartbeat with error handling
-		if err := store.AddHeartbeat(storeInstance, deviceID, t); err != nil {
-			validation.InternalError(c, "failed to add heartbeat")
-			return
-		}
-
-		c.Status(http.StatusNoContent)
-	}
-}
-
 // Handles upload stats submission
 func PostStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -107,9 +78,4 @@ func GetStatsHandler(storeInstance *models.Store) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, resp)
 	}
-}
-
-// Simple health check endpoint
-func HealthHandler(c *gin.Context) {
-	c.Data(http.StatusOK, "text/plain", []byte("OK"))
 }

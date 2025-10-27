@@ -1,9 +1,8 @@
 // Package utils provides common utility functions used across the application.
-// It includes mathematical operations, time parsing, and validation helpers.
+// It includes mathematical operations and time parsing helpers.
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -20,21 +19,4 @@ func ParseRFC3339(ts string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("invalid sent_at format: %s", ts)
 	}
 	return t.UTC(), nil
-}
-
-// ValidateTimestamp checks if a timestamp is within reasonable bounds
-func ValidateTimestamp(t time.Time) error {
-	now := time.Now()
-
-	// Reject timestamps from more than 24 hours ago (likely data corruption)
-	if t.Before(now.Add(-24 * time.Hour)) {
-		return errors.New("timestamp too old (>24h)")
-	}
-
-	// Reject timestamps more than 5 minutes in the future (clock skew)
-	if t.After(now.Add(5 * time.Minute)) {
-		return errors.New("timestamp too far in future (>5min)")
-	}
-
-	return nil
 }

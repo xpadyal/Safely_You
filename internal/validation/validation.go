@@ -33,11 +33,6 @@ func ValidateAndExtractTimestamp(c *gin.Context, sentAt string) (time.Time, bool
 		return time.Time{}, false
 	}
 
-	if err := utils.ValidateTimestamp(t); err != nil {
-		BadRequest(c, err.Error())
-		return time.Time{}, false
-	}
-
 	return t, true
 }
 
