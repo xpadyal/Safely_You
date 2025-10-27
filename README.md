@@ -243,7 +243,7 @@ export PORT=:9000
 If you see "Apple could not verify device-sim is free of malware" error:
 ```bash
 # Remove the macOS quarantine attribute
-xattr -d com.apple.quarantine device-sim
+xattr -d com.apple.quarantine device-sim```
 
 # Then run normally
 ./device-sim -port 8080
