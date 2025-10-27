@@ -239,6 +239,15 @@ export PORT=:9000
 - Ensure server is running on port 8080
 - Verify API routes include `/api/v1` prefix
 
+**macOS security warning for device-sim:**
+If you see "Apple could not verify device-sim is free of malware" error:
+```bash
+# Remove the macOS quarantine attribute
+xattr -d com.apple.quarantine device-sim
+
+# Then run normally
+./device-sim -port 8080
+
 **CSV loading errors:**
 - Verify `devices.csv` exists in project root
 - Check CSV format (header row + device IDs)
