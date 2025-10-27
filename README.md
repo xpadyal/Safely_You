@@ -89,17 +89,17 @@ go run ./cmd/server
 curl http://localhost:8080/health
 
 # Send heartbeat
-curl -X POST http://localhost:8080/api/v1/devices/test-device/heartbeat \
+curl -X POST http://localhost:8080/api/v1/devices/{device-id}/heartbeat \
   -H "Content-Type: application/json" \
   -d '{"sent_at": "2023-10-25T19:47:31Z"}'
 
 # Send upload stats
-curl -X POST http://localhost:8080/api/v1/devices/test-device/stats \
+curl -X POST http://localhost:8080/api/v1/devices/{device-id}/stats \
   -H "Content-Type: application/json" \
   -d '{"sent_at": "2023-10-25T19:47:31Z", "upload_time": 5000000000}'
 
 # Get device statistics
-curl http://localhost:8080/api/v1/devices/test-device/stats
+curl http://localhost:8080/api/v1/devices/{device-id}/stats
 ```
 
 ### With Device Simulator
